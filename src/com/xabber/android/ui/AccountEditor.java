@@ -17,6 +17,7 @@ package com.xabber.android.ui;
 import java.util.HashMap;
 import java.util.Map;
 
+import android.app.Dialog;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
@@ -29,9 +30,12 @@ import com.xabber.android.data.account.AccountItem;
 import com.xabber.android.data.account.AccountManager;
 import com.xabber.android.data.account.AccountProtocol;
 import com.xabber.android.data.account.ArchiveMode;
+import com.xabber.android.data.connection.ProxyType;
 import com.xabber.android.data.connection.TLSMode;
 import com.xabber.android.data.intent.AccountIntentBuilder;
+import com.xabber.android.ui.dialog.OrbotInstallerDialogBuilder;
 import com.xabber.android.ui.helper.BaseSettingsActivity;
+import com.xabber.android.ui.helper.OrbotHelper;
 import com.xabber.androiddev.R;
 
 public class AccountEditor extends BaseSettingsActivity implements
@@ -42,6 +46,8 @@ public class AccountEditor extends BaseSettingsActivity implements
 	private static final String SAVED_TOKEN = "com.xabber.android.ui.AccountEditor.TOKEN";
 
 	private static final String INVALIDATED_TOKEN = "com.xabber.android.ui.AccountEditor.INVALIDATED";
+
+	private static final int ORBOT_DIALOG_ID = 9050;
 
 	private String account;
 	private AccountItem accountItem;
@@ -129,13 +135,32 @@ public class AccountEditor extends BaseSettingsActivity implements
 		if (getString(R.string.account_tls_mode_key)
 				.equals(preference.getKey())
 				|| getString(R.string.account_archive_mode_key).equals(
+						preference.getKey())
+				|| getString(R.string.account_proxy_type_key).equals(
 						preference.getKey()))
 			preference.setSummary((String) newValue);
 		else if (!getString(R.string.account_password_key).equals(
 				preference.getKey())
+				&& !getString(R.string.account_proxy_password_key).equals(
+						preference.getKey())
 				&& !getString(R.string.account_priority_key).equals(
 						preference.getKey()))
 			super.onPreferenceChange(preference, newValue);
+		if (getString(R.string.account_proxy_type_key).equals(
+				preference.getKey())) {
+			boolean enabled = !getString(R.string.account_proxy_type_none)
+					.equals(newValue)
+					&& !getString(R.string.account_proxy_type_orbot).equals(
+							newValue);
+			for (int id : new Integer[] { R.string.account_proxy_host_key,
+					R.string.account_proxy_port_key,
+					R.string.account_proxy_user_key,
+					R.string.account_proxy_password_key, }) {
+				Preference proxyPreference = findPreference(getString(id));
+				if (proxyPreference != null)
+					proxyPreference.setEnabled(enabled);
+			}
+		}
 		return true;
 	}
 
@@ -190,6 +215,19 @@ public class AccountEditor extends BaseSettingsActivity implements
 						.getTlsMode().ordinal()));
 		putValue(source, R.string.account_compression_key, accountItem
 				.getConnectionSettings().useCompression());
+		putValue(
+				source,
+				R.string.account_proxy_type_key,
+				Integer.valueOf(accountItem.getConnectionSettings()
+						.getProxyType().ordinal()));
+		putValue(source, R.string.account_proxy_host_key, accountItem
+				.getConnectionSettings().getProxyHost());
+		putValue(source, R.string.account_proxy_port_key, accountItem
+				.getConnectionSettings().getProxyPort());
+		putValue(source, R.string.account_proxy_user_key, accountItem
+				.getConnectionSettings().getProxyUser());
+		putValue(source, R.string.account_proxy_password_key, accountItem
+				.getConnectionSettings().getProxyPassword());
 		putValue(source, R.string.account_syncable_key,
 				accountItem.isSyncable());
 		putValue(source, R.string.account_archive_mode_key,
@@ -208,6 +246,12 @@ public class AccountEditor extends BaseSettingsActivity implements
 	@Override
 	protected boolean setValues(Map<String, Object> source,
 			Map<String, Object> result) {
+		ProxyType proxyType = ProxyType.values()[getInt(result,
+				R.string.account_proxy_type_key)];
+		if (proxyType == ProxyType.orbot && !OrbotHelper.isOrbotInstalled()) {
+			showDialog(ORBOT_DIALOG_ID);
+			return false;
+		}
 		AccountManager
 				.getInstance()
 				.updateAccount(
@@ -226,10 +270,24 @@ public class AccountEditor extends BaseSettingsActivity implements
 						TLSMode.values()[getInt(result,
 								R.string.account_tls_mode_key)],
 						getBoolean(result, R.string.account_compression_key),
+						proxyType,
+						getString(result, R.string.account_proxy_host_key),
+						getInt(result, R.string.account_proxy_port_key),
+						getString(result, R.string.account_proxy_user_key),
+						getString(result, R.string.account_proxy_password_key),
 						getBoolean(result, R.string.account_syncable_key),
 						ArchiveMode.values()[getInt(result,
 								R.string.account_archive_mode_key)]);
 		return true;
+	}
+
+	@Override
+	protected Dialog onCreateDialog(int id) {
+		if (id == ORBOT_DIALOG_ID) {
+			return new OrbotInstallerDialogBuilder(this, ORBOT_DIALOG_ID)
+					.create();
+		}
+		return super.onCreateDialog(id);
 	}
 
 	private static String getAccount(Intent intent) {

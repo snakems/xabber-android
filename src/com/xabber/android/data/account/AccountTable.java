@@ -34,6 +34,7 @@ import android.provider.BaseColumns;
 import com.xabber.android.data.AbstractTable;
 import com.xabber.android.data.Application;
 import com.xabber.android.data.DatabaseManager;
+import com.xabber.android.data.connection.ProxyType;
 import com.xabber.android.data.connection.TLSMode;
 import com.xabber.androiddev.R;
 
@@ -70,6 +71,11 @@ class AccountTable extends AbstractTable {
 		public static final String PRIVATE_KEY = "private_key";
 		public static final String LAST_SYNC = "last_sync";
 		public static final String ARCHIVE_MODE = "archive_mode";
+		public static final String PROXY_TYPE = "proxy_type";
+		public static final String PROXY_HOST = "proxy_host";
+		public static final String PROXY_PORT = "proxy_port";
+		public static final String PROXY_USER = "proxy_user";
+		public static final String PROXY_PASSWORD = "proxy_password";
 	}
 
 	private static final String NAME = "accounts";
@@ -80,7 +86,9 @@ class AccountTable extends AbstractTable {
 			Fields.STATUS_MODE, Fields.STATUS_TEXT, Fields.ENABLED,
 			Fields.SASL_ENABLED, Fields.TLS_MODE, Fields.COMPRESSION,
 			Fields.SYNCABLE, Fields.STORE_PASSWORD, Fields.PUBLIC_KEY,
-			Fields.PRIVATE_KEY, Fields.LAST_SYNC, Fields.ARCHIVE_MODE };
+			Fields.PRIVATE_KEY, Fields.LAST_SYNC, Fields.ARCHIVE_MODE,
+			Fields.PROXY_TYPE, Fields.PROXY_HOST, Fields.PROXY_PORT,
+			Fields.PROXY_USER, Fields.PROXY_PASSWORD };
 
 	private final DatabaseManager databaseManager;
 
@@ -114,7 +122,11 @@ class AccountTable extends AbstractTable {
 				+ " INTEGER," + Fields.SYNCABLE + " INTEGER,"
 				+ Fields.STORE_PASSWORD + " INTEGER," + Fields.PUBLIC_KEY
 				+ " BLOB," + Fields.PRIVATE_KEY + " BLOB," + Fields.LAST_SYNC
-				+ " INTEGER," + Fields.ARCHIVE_MODE + " INTEGER);";
+				+ " INTEGER," + Fields.ARCHIVE_MODE + " INTEGER,"
+				+ Fields.PROXY_TYPE + " INTEGER," + Fields.PROXY_HOST
+				+ " TEXT," + Fields.PROXY_PORT + " INTEGER,"
+				+ Fields.PROXY_USER + " TEXT," + Fields.PROXY_PASSWORD
+				+ " TEXT);";
 		DatabaseManager.execSQL(db, sql);
 	}
 
@@ -264,6 +276,24 @@ class AccountTable extends AbstractTable {
 					+ ";";
 			DatabaseManager.execSQL(db, sql);
 			break;
+		case 66:
+			sql = "ALTER TABLE accounts ADD COLUMN proxy_type INTEGER;";
+			DatabaseManager.execSQL(db, sql);
+			sql = "ALTER TABLE accounts ADD COLUMN proxy_host TEXT;";
+			DatabaseManager.execSQL(db, sql);
+			sql = "ALTER TABLE accounts ADD COLUMN proxy_port INTEGER;";
+			DatabaseManager.execSQL(db, sql);
+			sql = "ALTER TABLE accounts ADD COLUMN proxy_user TEXT;";
+			DatabaseManager.execSQL(db, sql);
+			sql = "ALTER TABLE accounts ADD COLUMN proxy_password TEXT;";
+			DatabaseManager.execSQL(db, sql);
+			sql = "UPDATE accounts SET proxy_type = "
+					+ ProxyType.none.ordinal() + ", "
+					+ "proxy_host = \"localhost\", " + "proxy_port = 8080, "
+					+ "proxy_user = \"\", " + "proxy_password = \"\" "
+					+ "WHERE proxy_type IS NULL;";
+			DatabaseManager.execSQL(db, sql);
+			break;
 		default:
 			break;
 		}
@@ -272,28 +302,6 @@ class AccountTable extends AbstractTable {
 	/**
 	 * Adds or updates account.
 	 * 
-	 * @param id
-	 * @param protocol
-	 * @param custom
-	 * @param host
-	 * @param port
-	 * @param serverName
-	 * @param userName
-	 * @param resource
-	 * @param storePassword
-	 * @param password
-	 * @param colorIndex
-	 * @param priority
-	 * @param statusMode
-	 * @param statusText
-	 * @param enabled
-	 * @param saslEnabled
-	 * @param tlsMode
-	 * @param compression
-	 * @param syncable
-	 * @param keyPair
-	 * @param lastSync
-	 * @param archiveMode
 	 * @return Assigned id.
 	 */
 	long write(Long id, AccountProtocol protocol, boolean custom, String host,
@@ -301,8 +309,10 @@ class AccountTable extends AbstractTable {
 			boolean storePassword, String password, int colorIndex,
 			int priority, StatusMode statusMode, String statusText,
 			boolean enabled, boolean saslEnabled, TLSMode tlsMode,
-			boolean compression, boolean syncable, KeyPair keyPair,
-			Date lastSync, ArchiveMode archiveMode) {
+			boolean compression, ProxyType proxyType, String proxyHost,
+			int proxyPort, String proxyUser, String proxyPassword,
+			boolean syncable, KeyPair keyPair, Date lastSync,
+			ArchiveMode archiveMode) {
 		ContentValues values = new ContentValues();
 		values.put(Fields.PROTOCOL, protocol.name());
 		values.put(Fields.CUSTOM, custom ? 1 : 0);
@@ -322,6 +332,11 @@ class AccountTable extends AbstractTable {
 		values.put(Fields.SASL_ENABLED, saslEnabled ? 1 : 0);
 		values.put(Fields.TLS_MODE, tlsMode.ordinal());
 		values.put(Fields.COMPRESSION, compression ? 1 : 0);
+		values.put(Fields.PROXY_TYPE, proxyType.ordinal());
+		values.put(Fields.PROXY_HOST, proxyHost);
+		values.put(Fields.PROXY_PORT, proxyPort);
+		values.put(Fields.PROXY_USER, proxyUser);
+		values.put(Fields.PROXY_PASSWORD, proxyPassword);
 		values.put(Fields.SYNCABLE, syncable ? 1 : 0);
 		values.put(Fields.STORE_PASSWORD, storePassword ? 1 : 0);
 		if (keyPair == null) {
@@ -478,6 +493,27 @@ class AccountTable extends AbstractTable {
 	static ArchiveMode getArchiveMode(Cursor cursor) {
 		int index = cursor.getInt(cursor.getColumnIndex(Fields.ARCHIVE_MODE));
 		return ArchiveMode.values()[index];
+	}
+
+	static ProxyType getProxyType(Cursor cursor) {
+		int index = cursor.getInt(cursor.getColumnIndex(Fields.PROXY_TYPE));
+		return ProxyType.values()[index];
+	}
+
+	static String getProxyHost(Cursor cursor) {
+		return cursor.getString(cursor.getColumnIndex(Fields.PROXY_HOST));
+	}
+
+	static int getProxyPort(Cursor cursor) {
+		return cursor.getInt(cursor.getColumnIndex(Fields.PROXY_PORT));
+	}
+
+	static String getProxyUser(Cursor cursor) {
+		return cursor.getString(cursor.getColumnIndex(Fields.PROXY_USER));
+	}
+
+	static String getProxyPassword(Cursor cursor) {
+		return cursor.getString(cursor.getColumnIndex(Fields.PROXY_PASSWORD));
 	}
 
 	static KeyPair getKeyPair(Cursor cursor) {

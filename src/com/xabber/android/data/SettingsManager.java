@@ -32,6 +32,7 @@ import com.xabber.android.data.account.AccountManager;
 import com.xabber.android.data.account.StatusMode;
 import com.xabber.android.data.connection.NetworkManager;
 import com.xabber.android.data.extension.attention.AttentionManager;
+import com.xabber.android.data.extension.otr.OTRManager;
 import com.xabber.android.data.message.MessageManager;
 import com.xabber.android.data.notification.NotificationManager;
 import com.xabber.android.data.roster.AbstractContact;
@@ -755,7 +756,7 @@ public class SettingsManager implements OnInitializedListener,
 			String key) {
 		if (key.equals(Application.getInstance().getString(
 				R.string.chats_show_status_change_key))) {
-			MessageManager.getInstance().onActionSettings();
+			MessageManager.getInstance().onSettingsChanged();
 		} else if (key.equals(Application.getInstance().getString(
 				R.string.events_persistent_key))) {
 			NotificationManager.getInstance().onMessageNotification();
@@ -771,7 +772,10 @@ public class SettingsManager implements OnInitializedListener,
 			NotificationManager.getInstance().onMessageNotification();
 		} else if (key.equals(Application.getInstance().getString(
 				R.string.chats_attention_key))) {
-			AttentionManager.getInstance().onSettingChange();
+			AttentionManager.getInstance().onSettingsChanged();
+		} else if (key.equals(Application.getInstance().getString(
+				R.string.security_otr_mode_key))) {
+			OTRManager.getInstance().onSettingsChanged();
 		}
 	}
 

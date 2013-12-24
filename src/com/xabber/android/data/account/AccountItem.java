@@ -25,6 +25,7 @@ import com.xabber.android.data.SettingsManager;
 import com.xabber.android.data.connection.ConnectionItem;
 import com.xabber.android.data.connection.ConnectionState;
 import com.xabber.android.data.connection.ConnectionThread;
+import com.xabber.android.data.connection.ProxyType;
 import com.xabber.android.data.connection.TLSMode;
 import com.xabber.androiddev.R;
 
@@ -106,10 +107,13 @@ public class AccountItem extends ConnectionItem {
 			boolean storePassword, String password, int colorIndex,
 			int priority, StatusMode statusMode, String statusText,
 			boolean enabled, boolean saslEnabled, TLSMode tlsMode,
-			boolean compression, boolean syncable, KeyPair keyPair,
-			Date lastSync, ArchiveMode archiveMode) {
+			boolean compression, ProxyType proxyType, String proxyHost,
+			int proxyPort, String proxyUser, String proxyPassword,
+			boolean syncable, KeyPair keyPair, Date lastSync,
+			ArchiveMode archiveMode) {
 		super(protocol, custom, host, port, serverName, userName, resource,
-				storePassword, password, saslEnabled, tlsMode, compression);
+				storePassword, password, saslEnabled, tlsMode, compression,
+				proxyType, proxyHost, proxyPort, proxyUser, proxyPassword);
 		this.id = null;
 		this.account = userName + "@" + serverName + "/" + resource;
 		this.colorIndex = colorIndex;
@@ -284,10 +288,12 @@ public class AccountItem extends ConnectionItem {
 			return new Presence(Type.unavailable);
 		else {
 			int priority;
-			if (AccountManager.getInstance().isXa())
-				statusMode = StatusMode.xa;
-			else if (AccountManager.getInstance().isAway())
-				statusMode = StatusMode.away;
+			if (statusMode != StatusMode.dnd) {
+				if (AccountManager.getInstance().isXa())
+					statusMode = StatusMode.xa;
+				else if (AccountManager.getInstance().isAway())
+					statusMode = StatusMode.away;
+			}
 			if (SettingsManager.connectionAdjustPriority()) {
 				if (statusMode == StatusMode.available)
 					priority = SettingsManager.connectionPriorityAvailable();
@@ -332,9 +338,11 @@ public class AccountItem extends ConnectionItem {
 	 */
 	void updateConnectionSettings(boolean custom, String host, int port,
 			String password, boolean saslEnabled, TLSMode tlsMode,
-			boolean compression) {
+			boolean compression, ProxyType proxyType, String proxyHost,
+			int proxyPort, String proxyUser, String proxyPassword) {
 		getConnectionSettings().update(custom, host, port, password,
-				saslEnabled, tlsMode, compression);
+				saslEnabled, tlsMode, compression, proxyType, proxyHost,
+				proxyPort, proxyUser, proxyPassword);
 		passwordRequested = false;
 		AccountManager.getInstance().removePasswordRequest(account);
 	}

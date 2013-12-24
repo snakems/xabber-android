@@ -124,6 +124,7 @@
     <string name="muc_invite">Invitar a chatear…</string>
     <!-- http://dl.dropbox.com/u/1029995/com.xabber.android/chat_viewer_leaved.png -->
     <string name="muc_is_unavailable">Debes unirte al chat para que tus mensajes sean entregados</string>
+    <string name="occupant_list">Lista de ocupantes</string>
     <!-- http://dl.dropbox.com/u/1029995/com.xabber.android/chat_viewer_option_menu_extra.png -->
     <string name="otr_encryption">Encriptación OTR</string>
     <!-- http://dl.dropbox.com/u/1029995/com.xabber.android/chat_viewer_option_menu_otr_02.png -->
